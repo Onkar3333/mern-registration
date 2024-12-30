@@ -1,101 +1,83 @@
-import React, { useState } from 'react';
-import './Registration.css';
+import React, { useState } from "react";
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
 const Registration = () => {
-    const [formData, setFormData] = useState({
-        firstName: '',
-        lastName: '',
-        mobileNumber: '',
-        password: '',
-    });
+  const [firstName, setFirstName] = useState(""); // Initialize state for firstName
+  const [lastName, setLastName] = useState(""); // Initialize state for lastName
+  const [mobileNumber, setMobileNumber] = useState(""); // Initialize state for mobileNumber
+  const [password, setPassword] = useState(""); // Initialize state for password
+  const navigate = useNavigate(); // Hook for navigation
 
-    const [error, setError] = useState('');
-    const [success, setSuccess] = useState('');
+  const handleSubmit = async (e) => {
+    e.preventDefault(); // Prevent page reload on form submit
 
-    const handleChange = (e) => {
-        setFormData({
-            ...formData,
-            [e.target.name]: e.target.value,
-        });
-    };
+    try {
+      const response = await axios.post("http://localhost:5000/register", {
+        firstName,
+        lastName,
+        mobileNumber,
+        password,
+      });
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        
-        if (!formData.firstName || !formData.lastName || !formData.mobileNumber || !formData.password) {
-            setError('All fields are required');
-            return;
-        }
+      if (response.status === 201) {
+        alert("Registration successful!");
+        navigate("/login");
+      }
+    } catch (err) {
+      console.error("Error during registration:", err);
+      if (err.response && err.response.data.message) {
+        alert(`Error: ${err.response.data.message}`);
+      } else {
+        alert("An unexpected error occurred. Please try again.");
+      }
+    }
+  };
 
-        try {
-            const response = await fetch('http://localhost:5000/register', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(formData),
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                setSuccess(data.message);
-                setError('');
-                alert('Registration successful');
-                window.location.href = '/login';  // Redirect to login after successful registration
-            } else {
-                const errorData = await response.json();
-                setError(errorData.message || 'Failed to register. Please try again later.');
-            }
-        } catch (error) {
-            setError('An error occurred. Please try again.');
-            console.error('Error:', error);
-        }
-    };
-
-    return (
-        <div id="root" className="registration-container">
-            <h2>Registration</h2>
-            <form onSubmit={handleSubmit}>
-                <input
-                    type="text"
-                    name="firstName"
-                    value={formData.firstName}
-                    onChange={handleChange}
-                    placeholder="First Name"
-                    required
-                />
-                <input
-                    type="text"
-                    name="lastName"
-                    value={formData.lastName}
-                    onChange={handleChange}
-                    placeholder="Last Name"
-                    required
-                />
-                <input
-                    type="tel"
-                    name="mobileNumber"
-                    value={formData.mobileNumber}
-                    onChange={handleChange}
-                    placeholder="Mobile Number"
-                    pattern="[0-9]{10}"
-                    required
-                />
-                <input
-                    type="password"
-                    name="password"
-                    value={formData.password}
-                    onChange={handleChange}
-                    placeholder="Password"
-                    required
-                />
-                <button type="submit">Register</button>
-            </form>
-
-            {error && <p className="error-message">{error}</p>}
-            {success && <p className="success-message">{success}</p>}
+  return (
+    <div className="registration-container">
+      <h1>Register</h1>
+      <form onSubmit={handleSubmit}>
+        <div>
+          <label>First Name:</label>
+          <input
+            type="text"
+            value={firstName}
+            onChange={(e) => setFirstName(e.target.value)} // Update firstName state
+            required
+          />
         </div>
-    );
+        <div>
+          <label>Last Name:</label>
+          <input
+            type="text"
+            value={lastName}
+            onChange={(e) => setLastName(e.target.value)} // Update lastName state
+            required
+          />
+        </div>
+        <div>
+          <label>Mobile Number:</label>
+          <input
+            type="text"
+            value={mobileNumber}
+            onChange={(e) => setMobileNumber(e.target.value)} // Update mobileNumber state
+            required
+          />
+        </div>
+        <div>
+          <label>Password:</label>
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)} // Update password state
+            required
+          />
+        </div>
+        <button type="submit">Register</button>
+      </form>
+    </div>
+  );
 };
 
 export default Registration;

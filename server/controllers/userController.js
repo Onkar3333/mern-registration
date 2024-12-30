@@ -1,31 +1,36 @@
-const bcrypt = require('bcryptjs');
-const db = require('../database/db');
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
+const db = require("../database/db");
 
-const registerUser = (req, res) => {
-    const { firstName, lastName, mobileNumber, password } = req.body;
+const registerUser = async (req, res) => {
+  const { firstName, lastName, mobile, password } = req.body;
 
-    // Validation check (to prevent empty data)
-    if (!firstName || !lastName || !mobileNumber || !password) {
-        return res.status(400).json({ message: 'All fields are required' });
+  const hashedPassword = await bcrypt.hash(password, 10);
+  const sql = "INSERT INTO users (firstName, lastName, mobile, password) VALUES (?, ?, ?, ?)";
+  const values = [firstName, lastName, mobile, hashedPassword];
+
+  db.query(sql, values, (err, result) => {
+    if (err) {
+      res.status(500).send(err.message);
+    } else {
+      res.status(201).send("User registered successfully");
     }
-
-    // Hash the password
-    bcrypt.hash(password, 10, (err, hashedPassword) => {
-        if (err) {
-            return res.status(500).json({ message: 'Error hashing password' });
-        }
-
-        // Insert into database
-        const query = 'INSERT INTO users (first_name, last_name, mobile_number, password) VALUES (?, ?, ?, ?)';
-        db.query(query, [firstName, lastName, mobileNumber, hashedPassword], (err, results) => {
-            if (err) {
-                console.error(err);  // This will give us more details on the error
-                return res.status(500).json({ message: 'Failed to register user' });
-            }
-
-            res.status(201).json({ message: 'User registered successfully', userId: results.insertId });
-        });
-    });
+  });
 };
 
-module.exports = { registerUser };
+const loginUser = (req, res) => {
+  const { mobile, password } = req.body;
+  const sql = "SELECT * FROM users WHERE mobile = ?";
+  db.query(sql, [mobile], async (err, results) => {
+    if (err) {
+      res.status(500).send(err.message);
+    } else if (results.length === 0 || !(await bcrypt.compare(password, results[0].password))) {
+      res.status(401).send("Invalid credentials");
+    } else {
+      const token = jwt.sign({ id: results[0].id }, "SECRET_KEY", { expiresIn: "1h" });
+      res.status(200).send({ success: true, message: "Login successful", token });
+    }
+  });
+};
+
+module.exports = { registerUser, loginUser };
